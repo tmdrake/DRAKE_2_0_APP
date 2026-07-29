@@ -53,15 +53,14 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   BluetoothDevice? _device;
-  BluetoothCharacteristic? _rxChar; // write commands here
-  BluetoothCharacteristic? _txChar; // receive status here
+  BluetoothCharacteristic? _rxChar;
+  BluetoothCharacteristic? _txChar;
   StreamSubscription? _txSub;
   StreamSubscription? _connSub;
 
   bool _isScanning = false;
   bool _isConnected = false;
   String _status = "Tap Connect to find the tail";
-  String _lastResponse = "";
   final List<String> _log = [];
 
   // UI state
@@ -70,19 +69,30 @@ class _HomePageState extends State<HomePage> {
   double _sensitivity = 50;
   double _speed = 50;
   bool _soundOn = true;
+  Color _baseColor = const Color(0xFF9D4EDD);
+  String _activeTheme = "purple";
 
+  // Dragony mode list — icons chosen for fantasy / elemental feel
   final List<Map<String, dynamic>> _modes = [
     {"id": 0, "name": "Sound Phase", "icon": Icons.graphic_eq},
-    {"id": 1, "name": "Sound Distinct", "icon": Icons.equalizer},
+    {"id": 1, "name": "Sound Pulse", "icon": Icons.equalizer},
     {"id": 2, "name": "VU Meter", "icon": Icons.bar_chart},
     {"id": 3, "name": "Rainbow", "icon": Icons.gradient},
     {"id": 4, "name": "Comet", "icon": Icons.rocket_launch},
     {"id": 5, "name": "Breathe", "icon": Icons.air},
-    {"id": 6, "name": "Fire", "icon": Icons.local_fire_department},
+    {"id": 6, "name": "Dragonfire", "icon": Icons.local_fire_department},
     {"id": 7, "name": "Sparkle", "icon": Icons.auto_awesome},
     {"id": 8, "name": "Wave", "icon": Icons.waves},
     {"id": 9, "name": "Solid", "icon": Icons.circle},
-    {"id": 10, "name": "Off", "icon": Icons.power_settings_new},
+    {"id": 10, "name": "Blackout", "icon": Icons.power_settings_new},
+  ];
+
+  final List<Map<String, dynamic>> _themes = [
+    {"id": "purple", "name": "Purple", "color": Color(0xFF9D4EDD), "rgb": "157,78,221"},
+    {"id": "fire", "name": "Fire", "color": Color(0xFFFF6B35), "rgb": "255,107,53"},
+    {"id": "ice", "name": "Ice", "color": Color(0xFF00D4FF), "rgb": "0,212,255"},
+    {"id": "gold", "name": "Gold", "color": Color(0xFFFFB703), "rgb": "255,183,3"},
+    {"id": "emerald", "name": "Emerald", "color": Color(0xFF06D6A0), "rgb": "6,214,160"},
   ];
 
   @override
@@ -100,7 +110,6 @@ class _HomePageState extends State<HomePage> {
     if (await Permission.bluetoothConnect.isDenied) {
       await Permission.bluetoothConnect.request();
     }
-    // Location only needed on older Android for scan
     if (await Permission.locationWhenInUse.isDenied) {
       await Permission.locationWhenInUse.request();
     }
@@ -121,16 +130,13 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      // Stop any previous scan
       await FlutterBluePlus.stopScan();
 
-      // Prefer devices advertising the NUS service
       await FlutterBluePlus.startScan(
         withServices: [NUS_SERVICE],
         timeout: const Duration(seconds: 12),
       );
 
-      // Also listen for name match as fallback
       late StreamSubscription scanSub;
       scanSub = FlutterBluePlus.scanResults.listen((results) async {
         for (final r in results) {
@@ -145,7 +151,6 @@ class _HomePageState extends State<HomePage> {
         }
       });
 
-      // Timeout fallback message
       await Future.delayed(const Duration(seconds: 13));
       if (!_isConnected && mounted) {
         setState(() {
@@ -204,7 +209,6 @@ class _HomePageState extends State<HomePage> {
           final text = utf8.decode(bytes, allowMalformed: true).trim();
           if (text.isNotEmpty && mounted) {
             setState(() {
-              _lastResponse = text;
               _log.insert(0, text);
               if (_log.length > 30) _log.removeLast();
             });
@@ -218,7 +222,6 @@ class _HomePageState extends State<HomePage> {
         _status = "Connected to TMDrake_tail 🐉";
       });
 
-      // Ask for status on connect
       await _send("?");
     } catch (e) {
       setState(() {
@@ -244,7 +247,6 @@ class _HomePageState extends State<HomePage> {
     if (_rxChar == null) return;
     try {
       final bytes = utf8.encode(cmd);
-      // Prefer writeWithoutResponse if supported for speed
       if (_rxChar!.properties.writeWithoutResponse) {
         await _rxChar!.write(bytes, withoutResponse: true);
       } else {
@@ -264,13 +266,122 @@ class _HomePageState extends State<HomePage> {
     _send("M$id");
   }
 
+  void _setTheme(String id, Color color, String rgb) {
+    setState(() {
+      _activeTheme = id;
+      _baseColor = color;
+    });
+    _send("C$rgb");
+    // also try named theme if firmware supports later
+    _send("T$id");
+  }
+
+  void _openColorPicker() {
+    double hue = HSVColor.fromColor(_baseColor).hue;
+    double sat = HSVColor.fromColor(_baseColor).saturation;
+    double val = HSVColor.fromColor(_baseColor).value;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A0B2E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final preview = HSVColor.fromAHSV(1, hue, sat, val).toColor();
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Custom Dragon Color",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 60,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: preview,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _hsvSlider("Hue", hue, 0, 360, (v) => setModalState(() => hue = v)),
+                  _hsvSlider("Sat", sat, 0, 1, (v) => setModalState(() => sat = v)),
+                  _hsvSlider("Val", val, 0, 1, (v) => setModalState(() => val = v)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: () {
+                        final c = HSVColor.fromAHSV(1, hue, sat, val).toColor();
+                        final r = c.red;
+                        final g = c.green;
+                        final b = c.blue;
+                        setState(() {
+                          _baseColor = c;
+                          _activeTheme = "custom";
+                        });
+                        _send("C$r,$g,$b");
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text("Apply Color", style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _hsvSlider(String label, double value, double min, double max, ValueChanged<double> onChanged) {
+    return Row(
+      children: [
+        SizedBox(width: 40, child: Text(label, style: const TextStyle(fontSize: 13))),
+        Expanded(
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Drake 2.0 Tail", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Dragon portrait (falls back gracefully if asset missing)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                "assets/tmdrake_badge.png",
+                height: 36,
+                width: 36,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.pets, size: 28),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text("Drake 2.0", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -286,11 +397,24 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Status + Connect
+            // Status + Connect + optional larger portrait
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Column(
                 children: [
+                  if (_isConnected)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          "assets/tmdrake_badge.png",
+                          height: 90,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    ),
                   Text(
                     _status,
                     textAlign: TextAlign.center,
@@ -300,10 +424,10 @@ class _HomePageState extends State<HomePage> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
-                    height: 52,
+                    height: 50,
                     child: FilledButton.icon(
                       onPressed: _isScanning
                           ? null
@@ -330,15 +454,15 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Modes
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // MODES
                     const Padding(
-                      padding: EdgeInsets.only(left: 4, bottom: 8),
+                      padding: EdgeInsets.only(left: 4, bottom: 8, top: 4),
                       child: Text("Modes", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                     Wrap(
@@ -349,24 +473,26 @@ class _HomePageState extends State<HomePage> {
                         return SizedBox(
                           width: (MediaQuery.of(context).size.width - 40) / 3,
                           child: Material(
-                            color: selected ? cs.primary.withOpacity(0.35) : cs.surfaceContainerHighest,
+                            color: selected ? cs.primary.withOpacity(0.4) : cs.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(14),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(14),
                               onTap: _isConnected ? () => _setMode(m["id"] as int) : null,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                                 child: Column(
                                   children: [
                                     Icon(m["icon"] as IconData,
                                         size: 28,
-                                        color: selected ? cs.secondary : cs.onSurface.withOpacity(0.7)),
-                                    const SizedBox(height: 6),
+                                        color: selected ? cs.secondary : cs.onSurface.withOpacity(0.75)),
+                                    const SizedBox(height: 5),
                                     Text(
                                       m["name"] as String,
                                       textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 11.5,
                                         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                                         color: selected ? Colors.white : cs.onSurface.withOpacity(0.85),
                                       ),
@@ -380,9 +506,91 @@ class _HomePageState extends State<HomePage> {
                       }).toList(),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
-                    // Sliders
+                    // THEMES / COLOR
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, bottom: 8),
+                      child: Text("Theme / Color", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          ..._themes.map((t) {
+                            final selected = _activeTheme == t["id"];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: GestureDetector(
+                                onTap: _isConnected
+                                    ? () => _setTheme(
+                                        t["id"] as String,
+                                        t["color"] as Color,
+                                        t["rgb"] as String,
+                                      )
+                                    : null,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: t["color"] as Color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selected ? Colors.white : Colors.white24,
+                                      width: selected ? 3 : 1.5,
+                                    ),
+                                    boxShadow: selected
+                                        ? [
+                                            BoxShadow(
+                                              color: (t["color"] as Color).withOpacity(0.6),
+                                              blurRadius: 10,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                  child: selected
+                                      ? const Icon(Icons.check, color: Colors.white, size: 28)
+                                      : null,
+                                ),
+                              ),
+                            );
+                          }),
+                          // Custom button
+                          GestureDetector(
+                            onTap: _isConnected ? _openColorPicker : null,
+                            child: Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const SweepGradient(
+                                  colors: [
+                                    Colors.red,
+                                    Colors.yellow,
+                                    Colors.green,
+                                    Colors.cyan,
+                                    Colors.blue,
+                                    Colors.purple,
+                                    Colors.red,
+                                  ],
+                                ),
+                                border: Border.all(
+                                  color: _activeTheme == "custom" ? Colors.white : Colors.white24,
+                                  width: _activeTheme == "custom" ? 3 : 1.5,
+                                ),
+                              ),
+                              child: const Icon(Icons.colorize, color: Colors.white, size: 26),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // SLIDERS
                     _sliderTile(
                       label: "Brightness",
                       value: _brightness,
@@ -407,7 +615,7 @@ class _HomePageState extends State<HomePage> {
 
                     const SizedBox(height: 8),
 
-                    // Quick actions
+                    // QUICK ACTIONS
                     Row(
                       children: [
                         Expanded(
@@ -459,7 +667,7 @@ class _HomePageState extends State<HomePage> {
 
                     const SizedBox(height: 16),
 
-                    // Response log
+                    // LOG
                     if (_log.isNotEmpty) ...[
                       const Text("Log", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
@@ -505,7 +713,7 @@ class _HomePageState extends State<HomePage> {
     required ValueChanged<double> onChangeEnd,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
           Icon(icon, size: 22, color: Theme.of(context).colorScheme.secondary),

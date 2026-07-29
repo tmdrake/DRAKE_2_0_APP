@@ -2,66 +2,79 @@
 
 **Easy phone companion** for the Drake 2.0 dragonsuit (Tail first).
 
-Big mode buttons, live sliders, one-tap Flash / Sound / Save. Talks Nordic UART Service (NUS) over BLE to `TMDrake_tail`.
+Big mode buttons, live sliders, theme/color picker, one-tap Flash / Sound / Save.  
+Talks Nordic UART Service (NUS) over BLE to `TMDrake_tail`.
 
 > Device: `TMDrake_tail`  
 > Service: `6E400001-B5A3-F393-E0A9-E50E24DCCA9E`
 
-## What it does (v0.1)
+## Features (v0.1.1)
 
-- One big **Connect to Tail** button → scans for the NUS UUID / name and connects
-- Large tappable **mode cards** (Sound Phase, Rainbow, Fire, Off, …)
-- Sliders for **Brightness**, **Sensitivity**, **Speed** (sends on release)
-- Quick actions: Sound On/Off, Flash, Save to NVS, Status dump
-- Live response log at the bottom
-- Dark purple dragon theme, big touch targets, portrait phone-first
+- One big **Connect to Tail** button
+- Large tappable **mode cards** (Sound Phase, Rainbow, Dragonfire, Comet, Blackout…)
+- **Theme circles**: Purple / Fire / Ice / Gold / Emerald + full custom HSV color picker
+- Sliders for Brightness, Sensitivity, Speed
+- Quick actions: Sound On/Off, Flash, Save to NVS, Status
+- Live response log
+- Dark purple dragon theme + your TMDrake badge as portrait / logo
+- Big touch targets, portrait phone-first
 
-## Commands sent (compatible with current Tail firmware)
+## Commands sent
 
 ```
-M0 … M10     mode
-B0-100       brightness
-S0-100       sensitivity
-V0-100       animation speed
-E0 / E1      sound off / on
-L            flash
-W            save settings
-?            status
+M0 … M10          mode
+B0-100            brightness
+S0-100            sensitivity
+V0-100            animation speed
+C<r>,<g>,<b>      base / theme color
+T<name>           named theme (purple/fire/ice/…)
+E0 / E1           sound off / on
+L                 flash
+W                 save settings
+?                 status
 ```
 
-## How to load it on your phone
+## How to load it on your phone (Android)
 
-### Easiest path (Android)
-
-1. Install **Flutter** + Android Studio (or just the Android SDK + Flutter CLI)
+1. Install Flutter + Android Studio (or Flutter CLI + Android SDK)
 2. Clone this repo
-3. From the project folder:
+3. **Add the dragon assets** (important!):
    ```bash
+   mkdir -p assets
+   # Copy the badge image you provided (or the resized versions)
+   # Place as:
+   #   assets/tmdrake_badge.png   ← used in the app UI portrait
+   #   assets/tmdrake_icon.png    ← for launcher icon later
+   ```
+   You can grab the high-res original or the resized versions prepared for the app.
+
+4. Then:
+   ```bash
+   flutter create . --project-name drake_2_0_app
    flutter pub get
    flutter run
    ```
-   or build a release APK you can sideload:
+   or build a sideloadable APK:
    ```bash
    flutter build apk --release
    ```
-   The APK lands in `build/app/outputs/flutter-apk/app-release.apk`
+   APK → `build/app/outputs/flutter-apk/app-release.apk`
 
-4. Grant Bluetooth & (if asked) Location permission when the app starts.
+5. Grant Bluetooth (and Location if asked) on first run.
 
-### iOS
+### App icon (optional polish)
 
-Same Flutter project works; open in Xcode after `flutter create .` / pod install and add the Bluetooth usage description if needed.
+After `flutter create`, you can replace the default launcher icons with the square `tmdrake_icon_512.png` using the `flutter_launcher_icons` package, or just drop the 512 px version into the Android mipmap folders.
 
 ## Project links
 
 - Tail firmware: https://github.com/tmdrake/DRAKE_2_0_TAIL  
-- Head / Paws also exist under the same account
+- Head / Paws under the same account
 
 ## Notes
 
-- DualKiosk was just a test / different project. This app is purpose-built for the suit.
-- Firmware must still implement the extra commands (`B`, `V`, `S` range, new modes, etc.) for full effect. Current Tail already accepts `M`, `E`, `L`, `R`, `Z`, `?`.
-- Future: color picker, presets, animated dragon head reacting to mic level, multi-device (Head + Tail).
+- DualKiosk was a different test project. This app is purpose-built for the suit.
+- Firmware still needs the full command set (`B`, `V`, `C`, new modes…) for everything to light up. Existing commands (`M`, `E`, `L`, `?`…) already work.
 
 ---
 
