@@ -1,85 +1,69 @@
 # DRAKE_2_0_APP
 
-**TMDrake / Drake Dragon branded companion app** for the Drake 2.0 suit.
+**Easy phone companion** for the Drake 2.0 dragonsuit (Tail first).
 
-Controls the Tail (ESP32 + NimBLE Nordic UART Service), with future expansion to Head and Paws.
+Big mode buttons, live sliders, one-tap Flash / Sound / Save. Talks Nordic UART Service (NUS) over BLE to `TMDrake_tail`.
 
-> Device name: `TMDrake_tail`  
-> NUS Service UUID: `6E400001-B5A3-F393-E0A9-E50E24DCCA9E`
+> Device: `TMDrake_tail`  
+> Service: `6E400001-B5A3-F393-E0A9-E50E24DCCA9E`
 
-## Recommended Stack
+## What it does (v0.1)
 
-- **Flutter** (single codebase → Android + iOS)
-- BLE library: `flutter_blue_plus`
-- Dark purple / blue dragon theme, suit-inspired icons, animated reactive dragon head optional
+- One big **Connect to Tail** button → scans for the NUS UUID / name and connects
+- Large tappable **mode cards** (Sound Phase, Rainbow, Fire, Off, …)
+- Sliders for **Brightness**, **Sensitivity**, **Speed** (sends on release)
+- Quick actions: Sound On/Off, Flash, Save to NVS, Status dump
+- Live response log at the bottom
+- Dark purple dragon theme, big touch targets, portrait phone-first
 
-Native Kotlin Android is also fine if you want to stay pure-Android first (see DualKiosk for style reference).
-
-## Core Features (v1)
-
-- Scan & connect to `TMDrake_tail` (filter by NUS UUID)
-- Mode selector (grid/carousel with dragon-themed icons)
-- Live sliders:
-  - Master Brightness (0–100)
-  - Sound Sensitivity
-  - Animation Speed
-- Color / theme picker
-- Quick actions: Flash (`L`), Resync (`R`), Save preset (`W`)
-- Live status dump (`?`)
-- Sound enable/disable (`E0`/`E1`)
-
-## BLE Command Protocol (human-readable, keep compatible)
+## Commands sent (compatible with current Tail firmware)
 
 ```
-M<mode>          // Set mode 0-10+
-B<0-100>         // Master brightness
-S<value>         // Sensitivity
-E0 / E1          // Sound off / on
-V<0-100>         // Animation speed
-C<r>,<g>,<b>     // Base / theme color
-T<theme>         // Named theme
-P<preset>        // Load preset
-W                // Write / save settings to NVS
-R                // Resync / reset animation state
-L                // Flash
-?                // Status dump
+M0 … M10     mode
+B0-100       brightness
+S0-100       sensitivity
+V0-100       animation speed
+E0 / E1      sound off / on
+L            flash
+W            save settings
+?            status
 ```
 
-Responses arrive as NUS TX notifications.
+## How to load it on your phone
 
-## Modes (from Tail firmware)
+### Easiest path (Android)
 
-| Mode | Name              | Notes |
-|------|-------------------|-------|
-| 0    | Sound Phase       | Current color-phase reactive |
-| 1    | Sound Distinct    | Hard color cycle |
-| 2    | VU Meter          | Classic bar |
-| 3    | Rainbow Chase     | New |
-| 4    | Comet / Meteor    | New |
-| 5    | Breathing Pulse   | New |
-| 6    | Fire Flicker      | New |
-| 7    | Sparkle / Twinkle | New |
-| 8    | Wave / Undulate   | New |
-| 9    | Solid / Static    | New |
-| 10   | Off / Blackout    | New |
+1. Install **Flutter** + Android Studio (or just the Android SDK + Flutter CLI)
+2. Clone this repo
+3. From the project folder:
+   ```bash
+   flutter pub get
+   flutter run
+   ```
+   or build a release APK you can sideload:
+   ```bash
+   flutter build apk --release
+   ```
+   The APK lands in `build/app/outputs/flutter-apk/app-release.apk`
 
-## Project Links
+4. Grant Bluetooth & (if asked) Location permission when the app starts.
 
-- Tail firmware: https://github.com/tmdrake/DRAKE_2_0_TAIL
-- Head: https://github.com/tmdrake/DRAKE_2_0_HEAD
-- Paws: https://github.com/tmdrake/DRAKE_2_0_PAWB
-- Full roadmap lives in the Tail repo `IMPROVEMENTS.md`
+### iOS
 
-## Quick Start (Flutter)
+Same Flutter project works; open in Xcode after `flutter create .` / pod install and add the Bluetooth usage description if needed.
 
-```bash
-flutter create .
-# then add flutter_blue_plus and start scanning for the NUS service
-```
+## Project links
 
-Or open in Android Studio / VS Code and build the Android target first.
+- Tail firmware: https://github.com/tmdrake/DRAKE_2_0_TAIL  
+- Head / Paws also exist under the same account
+
+## Notes
+
+- DualKiosk was just a test / different project. This app is purpose-built for the suit.
+- Firmware must still implement the extra commands (`B`, `V`, `S` range, new modes, etc.) for full effect. Current Tail already accepts `M`, `E`, `L`, `R`, `Z`, `?`.
+- Future: color picker, presets, animated dragon head reacting to mic level, multi-device (Head + Tail).
 
 ---
 
-*Hatched by the dragon hardware/software engineer — July 2026*
+*Hatched for easy claw-and-tap control — July 2026*  
 *http://tmdrake.com*
