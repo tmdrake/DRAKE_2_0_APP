@@ -8,6 +8,18 @@ Talks Nordic UART Service (NUS) over BLE to `TMDrake_tail`.
 > Device: `TMDrake_tail`  
 > Service: `6E400001-B5A3-F393-E0A9-E50E24DCCA9E`
 
+## Screenshots (mockups)
+
+These are high-fidelity UI mockups of the current design (dark purple dragon theme + your badge portrait):
+
+**Main screen (connected)**  
+Modes grid, theme color circles (Purple / Fire / Ice / Gold / Emerald + custom rainbow), brightness/sensitivity/speed sliders, quick actions.
+
+**Custom Color Picker**  
+HSV bottom sheet with live preview and Apply button — sends `C<r>,<g>,<b>` to the tail.
+
+(The actual rendered screenshots live in the project artifacts folder as `screenshot_main.png` and `screenshot_colorpicker.png` so you can drop them into a `docs/` or `screenshots/` folder in this repo whenever you like.)
+
 ## Features (v0.1.1)
 
 - One big **Connect to Tail** button
@@ -41,12 +53,11 @@ W                 save settings
 3. **Add the dragon assets** (important!):
    ```bash
    mkdir -p assets
-   # Copy the badge image you provided (or the resized versions)
+   # Copy the badge image you provided (or the resized versions from artifacts)
    # Place as:
    #   assets/tmdrake_badge.png   ← used in the app UI portrait
    #   assets/tmdrake_icon.png    ← for launcher icon later
    ```
-   You can grab the high-res original or the resized versions prepared for the app.
 
 4. Then:
    ```bash
