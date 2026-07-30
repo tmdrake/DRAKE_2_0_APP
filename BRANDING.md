@@ -35,49 +35,74 @@ Purple-dragon look for Drake 2.0. Use these colors and assets so the phone UI ma
 
 ## Asset kit (for app developer)
 
-Source + sized PNGs are prepared by the app team (see project `artifacts/branding/` or ask for the kit). Copy into the Flutter tree as below.
+Source + sized PNGs are prepared by the app team (`artifacts/branding/` in the project workspace).
 
-### Required in repo / build
+### Head portrait (face / upper head crop)
 
-```text
-assets/
-  tmdrake_badge.png          # UI header / portrait (use 256 or 512)
-  tmdrake_icon.png           # generic square icon (512)
-
-android/app/src/main/res/
-  mipmap-mdpi/ic_launcher.png       # 48
-  mipmap-hdpi/ic_launcher.png       # 72
-  mipmap-xhdpi/ic_launcher.png      # 96
-  mipmap-xxhdpi/ic_launcher.png     # 144
-  mipmap-xxxhdpi/ic_launcher.png    # 192
-  drawable/ic_launcher_foreground.png  # 432 adaptive FG (transparent)
-```
-
-### Kit file map
+Use for AppBar avatar, About hero, circular profile chip.
 
 | File | Use |
 |------|-----|
-| `tmdrake_badge_source.png` | Master art |
-| `tmdrake_badge_128/256/512.png` | In-app header, About, Status |
-| `tmdrake_icon_48` … `_1024.png` | Launcher / store |
-| `ic_launcher_foreground.png` | Android adaptive icon FG |
+| `tmdrake_head_portrait_source.png` | Master head crop |
+| `tmdrake_head_square_128/256/512/1024.png` | Square avatar on void bg `#0D0618` |
+| `tmdrake_head_transparent_256/512.png` | Overlay / circular clip (no bg) |
+| `tmdrake_head_portrait_384x512.png` | 3:4 portrait |
+| `tmdrake_head_portrait_768x1024.png` | High-res 3:4 |
+
+**Suggested in-app:**
+
+```dart
+ClipOval(
+  child: Image.asset('assets/tmdrake_head.png', width: 40, height: 40, fit: BoxFit.cover),
+)
+```
+
+Copy kit → `assets/tmdrake_head.png` (prefer `tmdrake_head_square_256.png` or transparent 256).
+
+### Full badge + launcher
+
+| File | Use |
+|------|-----|
+| `tmdrake_badge_128/256/512.png` | Full badge (dragon + PCB + wordmark) |
+| `tmdrake_icon_48` … `_1024.png` | Legacy launcher densities |
+| `ic_launcher_foreground.png` | Android adaptive icon FG (432px, transparent) |
 | `splash_portrait.png` | Optional splash |
 
-### `pubspec.yaml`
+### Android adaptive icon (API 26+)
+
+XML stubs (add under `android/app/src/main/res/`):
+
+```text
+values/colors.xml
+  ic_launcher_background = #0D0618
+
+mipmap-anydpi-v26/ic_launcher.xml
+mipmap-anydpi-v26/ic_launcher_round.xml
+  background = @color/ic_launcher_background
+  foreground = @drawable/ic_launcher_foreground
+
+drawable/ic_launcher_foreground.png   ← from kit
+mipmap-mdpi … xxxhdpi/ic_launcher.png ← from tmdrake_icon_*
+```
+
+Manifest already uses `android:icon="@mipmap/ic_launcher"`.
+
+### Flutter assets
 
 ```yaml
 flutter:
   assets:
     - assets/tmdrake_badge.png
     - assets/tmdrake_icon.png
+    - assets/tmdrake_head.png
 ```
 
 ### In-app placement
 
-- **AppBar** — small circular/rounded badge (`tmdrake_badge.png`, ~34–40 logical px)
-- **About** — larger badge + “TMDrake / Drake 2.0”
-- **Connected chip** — secondary cyan + optional tiny dragon mark
-- **Launcher** — adaptive icon with purple/dark background + foreground dragon
+- **AppBar** — head portrait in a circle (~34–40 px) or small full badge
+- **About** — large head or full badge + “TMDrake / Drake 2.0”
+- **Connected chip** — cyan + optional tiny head mark
+- **Launcher** — adaptive icon (void bg + dragon FG)
 
 ---
 
@@ -98,17 +123,19 @@ scaffoldBackgroundColor: const Color(0xFF0D0618),
 
 ## Drop-in (local git)
 
-Binary PNGs: add with local git (agent APIs are text-oriented — see [REPO.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/REPO.md)).
+Binary PNGs: add with local git (see Tail [REPO.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/REPO.md)).
 
 ```bash
 cd DRAKE_2_0_APP
-mkdir -p assets
-# copy kit PNGs → assets/ and android mipmaps
-git add assets android/app/src/main/res
-git commit -m "Add TMDrake purple-dragon branding assets"
+mkdir -p assets android/app/src/main/res/drawable
+mkdir -p android/app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}
+mkdir -p android/app/src/main/res/mipmap-anydpi-v26
+# copy head / badge / icons from branding kit
+git add assets android/app/src/main/res BRANDING.md
+git commit -m "Add TMDrake head portrait + adaptive icon branding"
 git push
 ```
 
 ---
 
-*Branding pack for field + store · July 2026*
+*Branding pack — head portrait + adaptive icon · July 2026*
