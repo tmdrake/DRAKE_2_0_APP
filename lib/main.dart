@@ -71,17 +71,18 @@ class _HomeShellState extends State<HomeShell> {
   double _brightness = 80;
   double _speed = 50;
   Color _baseColor = const Color(0xFF9D4EDD);
-  String _activeTheme = "purple";
+  String _activeTheme = "purple"; // purple | fire | ice | gold | emerald | custom
+  int _themeId = 0; // 0-4 or -1 for custom
 
-  // Sound / Settings state (from SETTINGS.md)
+  // Sound / Settings state
   bool _soundOn = true;
-  double _sensitivity = 75; // default from firmware
+  double _sensitivity = 75;
   double _gate = 100;
-  double _gain = 100; // 50–300
+  double _gain = 100;
   int _micLevel = 0;
 
   // Head
-  int _fanMode = 2; // 0 off, 1 on, 2 auto
+  int _fanMode = 2;
   double _fanTemp = 85;
   double _cdsThreshold = 500;
   double _eyeDim = 40;
@@ -102,15 +103,15 @@ class _HomeShellState extends State<HomeShell> {
     {"id": 10, "name": "Blackout", "icon": Icons.power_settings_new},
   ];
 
+  // Exact firmware theme map (APP_INTERFACE v1.5)
   final List<Map<String, dynamic>> _themes = [
-    {"id": "purple", "name": "Purple", "color": const Color(0xFF9D4EDD), "rgb": "157,78,221"},
-    {"id": "fire", "name": "Fire", "color": const Color(0xFFFF6B35), "rgb": "255,107,53"},
-    {"id": "ice", "name": "Ice", "color": const Color(0xFF00D4FF), "rgb": "0,212,255"},
-    {"id": "gold", "name": "Gold", "color": const Color(0xFFFFB703), "rgb": "255,183,3"},
-    {"id": "emerald", "name": "Emerald", "color": const Color(0xFF06D6A0), "rgb": "6,214,160"},
+    {"id": 0, "key": "purple", "name": "Purple", "color": const Color.fromRGBO(157, 78, 221, 1), "rgb": "157,78,221"},
+    {"id": 1, "key": "fire", "name": "Fire", "color": const Color.fromRGBO(255, 60, 0, 1), "rgb": "255,60,0"},
+    {"id": 2, "key": "ice", "name": "Ice", "color": const Color.fromRGBO(80, 180, 255, 1), "rgb": "80,180,255"},
+    {"id": 3, "key": "gold", "name": "Gold", "color": const Color.fromRGBO(255, 180, 40, 1), "rgb": "255,180,40"},
+    {"id": 4, "key": "emerald", "name": "Emerald", "color": const Color.fromRGBO(20, 200, 100, 1), "rgb": "20,200,100"},
   ];
 
-  // Mic presets from SETTINGS.md
   final List<Map<String, dynamic>> _presets = [
     {"name": "Quiet", "S": 100, "G": 60, "A": 120},
     {"name": "Normal", "S": 75, "G": 100, "A": 100},
@@ -125,7 +126,6 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
-  // ───────── BLE helpers ─────────
   Future<bool> _requestPermissions() async {
     if (await Permission.bluetoothScan.isDenied) await Permission.bluetoothScan.request();
     if (await Permission.bluetoothConnect.isDenied) await Permission.bluetoothConnect.request();
@@ -229,20 +229,17 @@ class _HomeShellState extends State<HomeShell> {
       _log.insert(0, text);
       if (_log.length > 40) _log.removeLast();
     });
-    // Parse live STAT line
-    if (text.startsWith("STAT")) {
-      _parseStat(text);
-    }
+    if (text.startsWith("STAT")) _parseStat(text);
   }
 
   void _parseStat(String line) {
-    // STAT M:3 B:80 V:50 S:75 G:100 A:100 E:1 Mic:1423 HeadB:512 HeadT:86.2
+    // STAT M:9 B:80 V:50 S:75 G:100 A:100 E:1 C:157,78,221 T:0 Mic:100 HeadB:512 HeadT:86.2
     final map = <String, String>{};
     final parts = line.split(RegExp(r'\s+'));
     for (final p in parts) {
       if (p.contains(':')) {
         final kv = p.split(':');
-        if (kv.length == 2) map[kv[0]] = kv[1];
+        if (kv.length >= 2) map[kv[0]] = kv.sublist(1).join(':'); // handle C:r,g,b
       }
     }
     setState(() {
@@ -256,6 +253,30 @@ class _HomeShellState extends State<HomeShell> {
       if (map.containsKey('Mic')) _micLevel = int.tryParse(map['Mic']!) ?? _micLevel;
       if (map.containsKey('HeadB')) _headLight = int.tryParse(map['HeadB']!) ?? _headLight;
       if (map.containsKey('HeadT')) _headTemp = double.tryParse(map['HeadT']!) ?? _headTemp;
+
+      // Color / Theme sync (v1.5)
+      if (map.containsKey('T')) {
+        final t = int.tryParse(map['T']!);
+        if (t != null) {
+          _themeId = t;
+          if (t >= 0 && t < _themes.length) {
+            _activeTheme = _themes[t]["key"] as String;
+            _baseColor = _themes[t]["color"] as Color;
+          } else {
+            _activeTheme = "custom";
+            _themeId = -1;
+          }
+        }
+      }
+      if (map.containsKey('C') && _activeTheme == "custom") {
+        final rgb = map['C']!.split(',');
+        if (rgb.length == 3) {
+          final r = int.tryParse(rgb[0]) ?? 157;
+          final g = int.tryParse(rgb[1]) ?? 78;
+          final b = int.tryParse(rgb[2]) ?? 221;
+          _baseColor = Color.fromRGBO(r, g, b, 1);
+        }
+      }
     });
   }
 
@@ -289,7 +310,6 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
-  // Debounced send for sliders
   Timer? _debounce;
   void _sendDebounced(String cmd) {
     _debounce?.cancel();
@@ -307,7 +327,27 @@ class _HomeShellState extends State<HomeShell> {
     _send("A${_gain.round()}");
   }
 
-  // ───────── UI ─────────
+  void _applyTheme(Map<String, dynamic> t) {
+    setState(() {
+      _activeTheme = t["key"] as String;
+      _themeId = t["id"] as int;
+      _baseColor = t["color"] as Color;
+      _mode = 9; // firmware sets Solid when applying theme/color
+    });
+    // Prefer numeric T id (firmware accepts T0..T4 and named)
+    _send("T${t["id"]}");
+  }
+
+  void _applyCustomColor(Color c) {
+    setState(() {
+      _baseColor = c;
+      _activeTheme = "custom";
+      _themeId = -1;
+      _mode = 9;
+    });
+    _send("C${c.red},${c.green},${c.blue}");
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -341,7 +381,6 @@ class _HomeShellState extends State<HomeShell> {
       body: SafeArea(
         child: Column(
           children: [
-            // Connection bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Column(
@@ -383,7 +422,6 @@ class _HomeShellState extends State<HomeShell> {
                 ],
               ),
             ),
-            // Tab content
             Expanded(
               child: IndexedStack(
                 index: _tab,
@@ -409,7 +447,6 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  // ───── CONTROL TAB ─────
   Widget _buildControlTab(ColorScheme cs) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -430,7 +467,12 @@ class _HomeShellState extends State<HomeShell> {
                   borderRadius: BorderRadius.circular(14),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: _isConnected ? () { setState(() => _mode = m["id"] as int); _send("M${m["id"]}"); } : null,
+                    onTap: _isConnected
+                        ? () {
+                            setState(() => _mode = m["id"] as int);
+                            _send("M${m["id"]}");
+                          }
+                        : null,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                       child: Column(
@@ -449,27 +491,20 @@ class _HomeShellState extends State<HomeShell> {
             }).toList(),
           ),
           const SizedBox(height: 18),
-          const Text("Theme / Color", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text("Theme / Color (live)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text("Applies Solid mode + color across the suit", style: TextStyle(fontSize: 12, color: Colors.white54)),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
                 ..._themes.map((t) {
-                  final selected = _activeTheme == t["id"];
+                  final selected = _activeTheme == t["key"];
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: GestureDetector(
-                      onTap: _isConnected
-                          ? () {
-                              setState(() {
-                                _activeTheme = t["id"] as String;
-                                _baseColor = t["color"] as Color;
-                              });
-                              _send("C${t["rgb"]}");
-                              _send("T${t["id"]}");
-                            }
-                          : null,
+                      onTap: _isConnected ? () => _applyTheme(t) : null,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         width: 56,
@@ -478,6 +513,9 @@ class _HomeShellState extends State<HomeShell> {
                           color: t["color"] as Color,
                           shape: BoxShape.circle,
                           border: Border.all(color: selected ? Colors.white : Colors.white24, width: selected ? 3 : 1.5),
+                          boxShadow: selected
+                              ? [BoxShadow(color: (t["color"] as Color).withOpacity(0.55), blurRadius: 10, spreadRadius: 1)]
+                              : null,
                         ),
                         child: selected ? const Icon(Icons.check, color: Colors.white, size: 24) : null,
                       ),
@@ -523,7 +561,6 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  // ───── STATUS TAB ─────
   Widget _buildStatusTab(ColorScheme cs) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -549,11 +586,53 @@ class _HomeShellState extends State<HomeShell> {
               Expanded(child: _infoCard("Sound", _soundOn ? "ON" : "OFF", Icons.volume_up, _soundOn ? Colors.teal : Colors.grey)),
             ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _infoCard(
+                  "Theme",
+                  _activeTheme == "custom" ? "Custom" : _activeTheme,
+                  Icons.palette,
+                  _baseColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: _baseColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "${_baseColor.red},${_baseColor.green},${_baseColor.blue}",
+                        style: const TextStyle(fontSize: 12, fontFamily: "monospace"),
+                      ),
+                      const Text("RGB", style: TextStyle(fontSize: 12, color: Colors.white70)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           const Text("Recent Log", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Container(
-            height: 160,
+            height: 140,
             decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10)),
             child: ListView.builder(
               itemCount: _log.length,
@@ -579,14 +658,12 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  // ───── SETTINGS TAB ─────
   Widget _buildSettingsTab(ColorScheme cs) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // SOUND SECTION
           _sectionHeader("Sound", Icons.graphic_eq),
           SwitchListTile(
             title: const Text("Sound reactive"),
@@ -600,7 +677,6 @@ class _HomeShellState extends State<HomeShell> {
                 : null,
           ),
           const SizedBox(height: 4),
-          // Presets
           const Text("Presets", style: TextStyle(fontSize: 13, color: Colors.white70)),
           const SizedBox(height: 6),
           Row(
@@ -634,7 +710,6 @@ class _HomeShellState extends State<HomeShell> {
           _meterCard("Mic meter (live)", _micLevel.toDouble(), 0, 2000, cs.secondary, Icons.graphic_eq),
 
           const SizedBox(height: 20),
-          // FAN SECTION
           _sectionHeader("Fan (Head)", Icons.air),
           SegmentedButton<int>(
             segments: const [
@@ -660,7 +735,6 @@ class _HomeShellState extends State<HomeShell> {
               style: const TextStyle(fontSize: 13, color: Colors.white70)),
 
           const SizedBox(height: 20),
-          // EYES / CDS
           _sectionHeader("Eyes / Ambient (Head)", Icons.visibility),
           _slider("Dim when light ≥", _cdsThreshold, 0, 1023, Icons.wb_sunny, (v) {
             setState(() => _cdsThreshold = v);
@@ -674,7 +748,6 @@ class _HomeShellState extends State<HomeShell> {
               style: const TextStyle(fontSize: 13, color: Colors.white70)),
 
           const SizedBox(height: 20),
-          // SYSTEM
           _sectionHeader("System", Icons.settings_applications),
           ListTile(
             leading: const Icon(Icons.restart_alt, color: Colors.redAccent),
@@ -705,7 +778,7 @@ class _HomeShellState extends State<HomeShell> {
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text("About"),
-            subtitle: Text("Drake 2.0 Companion · v0.2.0\nInterface contract v1.3"),
+            subtitle: Text("Drake 2.0 Companion · v0.2.1\nInterface contract v1.5 · Color/Theme live"),
           ),
           const SizedBox(height: 30),
         ],
@@ -713,7 +786,6 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  // ───── Shared widgets ─────
   Widget _sectionHeader(String title, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 4),
@@ -869,11 +941,7 @@ class _HomeShellState extends State<HomeShell> {
                     child: FilledButton(
                       onPressed: () {
                         final c = HSVColor.fromAHSV(1, hue, sat, val).toColor();
-                        setState(() {
-                          _baseColor = c;
-                          _activeTheme = "custom";
-                        });
-                        _send("C${c.red},${c.green},${c.blue}");
+                        _applyCustomColor(c);
                         Navigator.pop(ctx);
                       },
                       child: const Text("Apply Color"),
