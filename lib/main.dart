@@ -64,17 +64,20 @@ class _HomeShellState extends State<HomeShell> {
   bool _isScanning = false;
   bool _isConnected = false;
   String _statusMsg = "Tap Connect to find the tail";
+
+  // Field-debug log: phone wall time + optional suit U
   final List<String> _log = [];
+  static const int _logMax = 200;
 
   // Control state
   int _mode = 0;
   double _brightness = 80;
   double _speed = 50;
   Color _baseColor = const Color(0xFF9D4EDD);
-  String _activeTheme = "purple"; // purple | fire | ice | gold | emerald | custom
-  int _themeId = 0; // 0-4 or -1 for custom
+  String _activeTheme = "purple";
+  int _themeId = 0;
 
-  // Sound / Settings state
+  // Sound / Settings
   bool _soundOn = true;
   double _sensitivity = 75;
   double _gate = 100;
@@ -88,6 +91,10 @@ class _HomeShellState extends State<HomeShell> {
   double _eyeDim = 40;
   double _headTemp = 0;
   int _headLight = 0;
+
+  // Link / uptime (from STAT / HBACK)
+  int _uptimeSec = 0;
+  int _hbSeq = 0;
 
   final List<Map<String, dynamic>> _modes = [
     {"id": 0, "name": "Sound Phase", "icon": Icons.graphic_eq},
@@ -103,7 +110,6 @@ class _HomeShellState extends State<HomeShell> {
     {"id": 10, "name": "Blackout", "icon": Icons.power_settings_new},
   ];
 
-  // Exact firmware theme map (APP_INTERFACE v1.5)
   final List<Map<String, dynamic>> _themes = [
     {"id": 0, "key": "purple", "name": "Purple", "color": const Color.fromRGBO(157, 78, 221, 1), "rgb": "157,78,221"},
     {"id": 1, "key": "fire", "name": "Fire", "color": const Color.fromRGBO(255, 60, 0, 1), "rgb": "255,60,0"},
@@ -126,6 +132,57 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
+  String _phoneStamp() {
+    final n = DateTime.now();
+    String two(int x) => x.toString().padLeft(2, '0');
+    return "${n.year}-${two(n.month)}-${two(n.day)}T${two(n.hour)}:${two(n.minute)}:${two(n.second)}";
+  }
+
+  void _appendLog(String line) {
+    final u = _uptimeSec > 0 ? " U:$_uptimeSec" : "";
+    final entry = "${_phoneStamp()}$u  $line";
+    setState(() {
+      _log.insert(0, entry);
+      if (_log.length > _logMax) _log.removeLast();
+    });
+  }
+
+  Future<void> _exportLog() async {
+    if (_log.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Log is empty")),
+        );
+      }
+      return;
+    }
+    final buf = StringBuffer();
+    buf.writeln("# Drake 2.0 companion log");
+    buf.writeln("# exported ${_phoneStamp()}");
+    buf.writeln("# last suit U:$_uptimeSec  Seq:$_hbSeq  mode:$_mode");
+    buf.writeln("# format: phone_time [suit_U]  event");
+    buf.writeln();
+    // chronological (oldest first)
+    for (final line in _log.reversed) {
+      buf.writeln(line);
+    }
+    await Clipboard.setData(ClipboardData(text: buf.toString()));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Log copied (${_log.length} lines) — paste into notes / chat")),
+      );
+    }
+  }
+
+  String _fmtUptime(int sec) {
+    final h = sec ~/ 3600;
+    final m = (sec % 3600) ~/ 60;
+    final s = sec % 60;
+    if (h > 0) return "${h}h ${m}m";
+    if (m > 0) return "${m}m ${s}s";
+    return "${s}s";
+  }
+
   Future<bool> _requestPermissions() async {
     if (await Permission.bluetoothScan.isDenied) await Permission.bluetoothScan.request();
     if (await Permission.bluetoothConnect.isDenied) await Permission.bluetoothConnect.request();
@@ -143,6 +200,7 @@ class _HomeShellState extends State<HomeShell> {
       _isScanning = true;
       _statusMsg = "Scanning for TMDrake_tail...";
     });
+    _appendLog("scan start");
     try {
       await FlutterBluePlus.stopScan();
       await FlutterBluePlus.startScan(withServices: [NUS_SERVICE], timeout: const Duration(seconds: 12));
@@ -164,17 +222,20 @@ class _HomeShellState extends State<HomeShell> {
           _isScanning = false;
           _statusMsg = "No tail found. Is it powered and nearby?";
         });
+        _appendLog("scan timeout — no device");
       }
     } catch (e) {
       setState(() {
         _isScanning = false;
         _statusMsg = "Scan error: $e";
       });
+      _appendLog("scan error: $e");
     }
   }
 
   Future<void> _connect(BluetoothDevice device) async {
     setState(() => _statusMsg = "Connecting to ${device.platformName}...");
+    _appendLog("connecting ${device.platformName}");
     try {
       await device.connect(timeout: const Duration(seconds: 10));
       _device = device;
@@ -186,6 +247,7 @@ class _HomeShellState extends State<HomeShell> {
             _rxChar = null;
             _txChar = null;
           });
+          _appendLog("disconnected");
         }
       });
       final services = await device.discoverServices();
@@ -198,6 +260,7 @@ class _HomeShellState extends State<HomeShell> {
       }
       if (nus == null) {
         setState(() => _statusMsg = "Connected but NUS service not found");
+        _appendLog("NUS service missing");
         return;
       }
       for (final c in nus.characteristics) {
@@ -213,33 +276,57 @@ class _HomeShellState extends State<HomeShell> {
         _isScanning = false;
         _statusMsg = "Connected to TMDrake_tail 🐉";
       });
+      _appendLog("connected + notify on");
       await _send("?");
     } catch (e) {
       setState(() {
         _isScanning = false;
         _statusMsg = "Connect failed: $e";
       });
+      _appendLog("connect failed: $e");
     }
   }
 
   void _onBleData(List<int> bytes) {
     final text = utf8.decode(bytes, allowMalformed: true).trim();
     if (text.isEmpty || !mounted) return;
+
+    if (text.startsWith("STAT")) {
+      _parseStat(text);
+      // don't flood log with every 2Hz STAT — sample lightly
+      if (_log.isEmpty || !_log.first.contains("STAT")) {
+        _appendLog(text);
+      }
+    } else if (text.startsWith("HBACK")) {
+      _parseHback(text);
+      _appendLog(text);
+    } else {
+      _appendLog(text);
+    }
+  }
+
+  void _parseHback(String line) {
+    // HBACK Seq:42 U:3600
+    final map = <String, String>{};
+    for (final p in line.split(RegExp(r'\s+'))) {
+      if (p.contains(':')) {
+        final kv = p.split(':');
+        if (kv.length >= 2) map[kv[0]] = kv.sublist(1).join(':');
+      }
+    }
     setState(() {
-      _log.insert(0, text);
-      if (_log.length > 40) _log.removeLast();
+      if (map.containsKey('Seq')) _hbSeq = int.tryParse(map['Seq']!) ?? _hbSeq;
+      if (map.containsKey('U')) _uptimeSec = int.tryParse(map['U']!) ?? _uptimeSec;
     });
-    if (text.startsWith("STAT")) _parseStat(text);
   }
 
   void _parseStat(String line) {
-    // STAT M:9 B:80 V:50 S:75 G:100 A:100 E:1 C:157,78,221 T:0 Mic:100 HeadB:512 HeadT:86.2
     final map = <String, String>{};
     final parts = line.split(RegExp(r'\s+'));
     for (final p in parts) {
       if (p.contains(':')) {
         final kv = p.split(':');
-        if (kv.length >= 2) map[kv[0]] = kv.sublist(1).join(':'); // handle C:r,g,b
+        if (kv.length >= 2) map[kv[0]] = kv.sublist(1).join(':');
       }
     }
     setState(() {
@@ -253,8 +340,9 @@ class _HomeShellState extends State<HomeShell> {
       if (map.containsKey('Mic')) _micLevel = int.tryParse(map['Mic']!) ?? _micLevel;
       if (map.containsKey('HeadB')) _headLight = int.tryParse(map['HeadB']!) ?? _headLight;
       if (map.containsKey('HeadT')) _headTemp = double.tryParse(map['HeadT']!) ?? _headTemp;
+      if (map.containsKey('U')) _uptimeSec = int.tryParse(map['U']!) ?? _uptimeSec;
+      if (map.containsKey('Seq')) _hbSeq = int.tryParse(map['Seq']!) ?? _hbSeq;
 
-      // Color / Theme sync (v1.5)
       if (map.containsKey('T')) {
         final t = int.tryParse(map['T']!);
         if (t != null) {
@@ -290,6 +378,7 @@ class _HomeShellState extends State<HomeShell> {
       _txChar = null;
       _statusMsg = "Disconnected";
     });
+    _appendLog("user disconnect");
   }
 
   Future<void> _send(String cmd) async {
@@ -301,12 +390,10 @@ class _HomeShellState extends State<HomeShell> {
       } else {
         await _rxChar!.write(bytes, withoutResponse: false);
       }
-      setState(() {
-        _log.insert(0, "→ $cmd");
-        if (_log.length > 40) _log.removeLast();
-      });
+      _appendLog("→ $cmd");
     } catch (e) {
       setState(() => _statusMsg = "Send error: $e");
+      _appendLog("send error $cmd: $e");
     }
   }
 
@@ -332,9 +419,8 @@ class _HomeShellState extends State<HomeShell> {
       _activeTheme = t["key"] as String;
       _themeId = t["id"] as int;
       _baseColor = t["color"] as Color;
-      _mode = 9; // firmware sets Solid when applying theme/color
+      _mode = 9;
     });
-    // Prefer numeric T id (firmware accepts T0..T4 and named)
     _send("T${t["id"]}");
   }
 
@@ -416,8 +502,13 @@ class _HomeShellState extends State<HomeShell> {
                         color: Colors.green.shade900.withOpacity(0.4),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text("Connected", textAlign: TextAlign.center,
-                          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.lightGreenAccent)),
+                      child: Text(
+                        _uptimeSec > 0
+                            ? "Connected · U ${_fmtUptime(_uptimeSec)} · Seq $_hbSeq"
+                            : "Connected",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.lightGreenAccent),
+                      ),
                     ),
                 ],
               ),
@@ -589,6 +680,14 @@ class _HomeShellState extends State<HomeShell> {
           const SizedBox(height: 12),
           Row(
             children: [
+              Expanded(child: _infoCard("Suit uptime", _fmtUptime(_uptimeSec), Icons.timer, cs.secondary)),
+              const SizedBox(width: 10),
+              Expanded(child: _infoCard("HB Seq", "$_hbSeq", Icons.sync, Colors.lightBlueAccent)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
                 child: _infoCard(
                   "Theme",
@@ -629,29 +728,51 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           const SizedBox(height: 16),
-          const Text("Recent Log", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              const Text("Field log", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Text("${_log.length}/$_logMax", style: const TextStyle(fontSize: 12, color: Colors.white54)),
+            ],
+          ),
           const SizedBox(height: 6),
           Container(
-            height: 140,
+            height: 160,
             decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10)),
             child: ListView.builder(
               itemCount: _log.length,
               itemBuilder: (_, i) => Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 child: Text(_log[i],
-                    style: TextStyle(fontFamily: "monospace", fontSize: 12,
-                        color: _log[i].startsWith("→") ? cs.secondary : Colors.white70)),
+                    style: TextStyle(fontFamily: "monospace", fontSize: 11,
+                        color: _log[i].contains("→") ? cs.secondary : Colors.white70)),
               ),
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _isConnected ? () => _send("?") : null,
-              icon: const Icon(Icons.refresh),
-              label: const Text("Refresh Status"),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isConnected ? () => _send("?") : null,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text("Refresh"),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _log.isEmpty ? null : _exportLog,
+                  icon: const Icon(Icons.copy_all),
+                  label: const Text("Export log"),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Export copies phone time + suit U into the clipboard for pasting into notes/chat.",
+            style: TextStyle(fontSize: 11, color: Colors.white54),
           ),
         ],
       ),
@@ -778,7 +899,7 @@ class _HomeShellState extends State<HomeShell> {
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text("About"),
-            subtitle: Text("Drake 2.0 Companion · v0.2.1\nInterface contract v1.5 · Color/Theme live"),
+            subtitle: Text("Drake 2.0 Companion · v0.2.2\nField log + U/Seq · contract v1.6"),
           ),
           const SizedBox(height: 30),
         ],
