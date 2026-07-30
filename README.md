@@ -10,6 +10,7 @@ Talks Nordic UART Service (NUS) over BLE to `TMDrake_tail`.
 | Service | `6E400001-B5A3-F393-E0A9-E50E24DCCA9E` |
 | **Contract** | [APP_INTERFACE.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/APP_INTERFACE.md) **v1.6** |
 | **App requirements** | [APP_TEAM.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/APP_TEAM.md) **← read first** |
+| **Repo / assets policy** | [REPO.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/REPO.md) |
 | Tracking | [Issue #1 — BLE link service + HB](https://github.com/tmdrake/DRAKE_2_0_APP/issues/1) |
 
 ---
@@ -38,29 +39,22 @@ Firmware already implements HB / HBACK / STAT (`Seq`, `U`). Details in APP_TEAM.
 
 ---
 
-## Screenshots (v0.2.1)
+## Screenshots & assets
 
-Control · Status · Settings mockups live under [`docs/screenshots/`](docs/screenshots/).
+Images, icons, and any **libraries needed for the build** belong in git when ready.
 
-| Tab | Preview |
-|-----|---------|
-| **Control** | Modes 0–10, **live Theme circles** (`T0–T4` / `C`), Brightness, Speed, Flash, Resync |
-| **Status** | Mic meter, Head Temp / Light, Mode, Sound, **Theme + RGB**, log |
-| **Settings** | Sound (Gain / Sensitivity / Gate + presets), Fan, Eyes/CDS, System |
+- Screenshots → `docs/screenshots/` (see that folder’s README)
+- Branding → `assets/` (badge, app icon PNGs)
 
-Drop the three JPGs from the app-team artifacts into `docs/screenshots/` as:
+Add them with **local `git add` / `git push` or GitHub Upload**. Automated agent file APIs are text-oriented and often fail on PNG/JPG — that is **not** a project ban on binaries. Full note: [REPO.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/REPO.md).
 
-- `control.jpg` ← `screenshot_control_v021.jpg`
-- `status.jpg` ← `screenshot_status_v021.jpg`
-- `settings.jpg` ← `screenshot_settings_v2.jpg`
-
-Then they render here:
-
-![Control](docs/screenshots/control.jpg)
-
-![Status](docs/screenshots/status.jpg)
-
-![Settings](docs/screenshots/settings.jpg)
+```bash
+mkdir -p assets docs/screenshots
+# copy PNGs/JPGs into place, then:
+git add assets docs/screenshots
+git commit -m "Add branding and UI screenshots"
+git push
+```
 
 ---
 
@@ -85,8 +79,7 @@ F0 F1 F2 FT  I  D  ?
 git clone https://github.com/tmdrake/DRAKE_2_0_APP.git
 cd DRAKE_2_0_APP
 mkdir -p assets docs/screenshots
-# copy tmdrake_badge.png + tmdrake_icon.png into assets/
-# copy control.jpg status.jpg settings.jpg into docs/screenshots/
+# add badge/icon PNGs and screenshots (local git — see above)
 flutter create . --project-name drake_2_0_app
 flutter pub get
 flutter run
@@ -98,8 +91,9 @@ flutter build apk --release
 
 - Tail firmware: https://github.com/tmdrake/DRAKE_2_0_TAIL
 - Requirements: https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/APP_TEAM.md
+- Repo policy: https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/REPO.md
 
 ---
 
-*Contract v1.6 — HB + link-service required · Screenshots section added · July 2026*  
+*Contract v1.6 — HB + link-service required · July 2026*  
 *http://tmdrake.com*
