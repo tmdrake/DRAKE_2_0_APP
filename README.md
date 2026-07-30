@@ -39,22 +39,17 @@ Firmware already implements HB / HBACK / STAT (`Seq`, `U`). Details in APP_TEAM.
 
 ---
 
-## Screenshots & assets
+## Screenshots (v0.2.1)
 
-Images, icons, and any **libraries needed for the build** belong in git when ready.
+| Control | Status | Settings |
+|:-------:|:------:|:--------:|
+| ![Control](docs/screenshots/control.svg) | ![Status](docs/screenshots/status.svg) | ![Settings](docs/screenshots/settings.svg) |
 
-- Screenshots → `docs/screenshots/` (see that folder’s README)
-- Branding → `assets/` (badge, app icon PNGs)
+- **Control** — Modes 0–10, live Theme circles (`T0–T4` / `C`), Brightness, Speed, Flash, Resync  
+- **Status** — Mic meter, Head Temp / Light, Mode, Sound, Theme + RGB, log  
+- **Settings** — Sound (Gain / Sensitivity / Gate + presets), Fan, Eyes/CDS, System  
 
-Add them with **local `git add` / `git push` or GitHub Upload**. Automated agent file APIs are text-oriented and often fail on PNG/JPG — that is **not** a project ban on binaries. Full note: [REPO.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/REPO.md).
-
-```bash
-mkdir -p assets docs/screenshots
-# copy PNGs/JPGs into place, then:
-git add assets docs/screenshots
-git commit -m "Add branding and UI screenshots"
-git push
-```
+Files: [`docs/screenshots/`](docs/screenshots/)
 
 ---
 
@@ -78,8 +73,8 @@ F0 F1 F2 FT  I  D  ?
 ```bash
 git clone https://github.com/tmdrake/DRAKE_2_0_APP.git
 cd DRAKE_2_0_APP
-mkdir -p assets docs/screenshots
-# add badge/icon PNGs and screenshots (local git — see above)
+mkdir -p assets
+# copy tmdrake_badge.png + tmdrake_icon.png into assets/
 flutter create . --project-name drake_2_0_app
 flutter pub get
 flutter run
@@ -95,5 +90,5 @@ flutter build apk --release
 
 ---
 
-*Contract v1.6 — HB + link-service required · July 2026*  
+*Contract v1.6 — HB + link-service required · Screenshots embedded · July 2026*  
 *http://tmdrake.com*
