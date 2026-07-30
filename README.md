@@ -38,6 +38,32 @@ Firmware already implements HB / HBACK / STAT (`Seq`, `U`). Details in APP_TEAM.
 
 ---
 
+## Screenshots (v0.2.1)
+
+Control · Status · Settings mockups live under [`docs/screenshots/`](docs/screenshots/).
+
+| Tab | Preview |
+|-----|---------|
+| **Control** | Modes 0–10, **live Theme circles** (`T0–T4` / `C`), Brightness, Speed, Flash, Resync |
+| **Status** | Mic meter, Head Temp / Light, Mode, Sound, **Theme + RGB**, log |
+| **Settings** | Sound (Gain / Sensitivity / Gate + presets), Fan, Eyes/CDS, System |
+
+Drop the three JPGs from the app-team artifacts into `docs/screenshots/` as:
+
+- `control.jpg` ← `screenshot_control_v021.jpg`
+- `status.jpg` ← `screenshot_status_v021.jpg`
+- `settings.jpg` ← `screenshot_settings_v2.jpg`
+
+Then they render here:
+
+![Control](docs/screenshots/control.jpg)
+
+![Status](docs/screenshots/status.jpg)
+
+![Settings](docs/screenshots/settings.jpg)
+
+---
+
 ## Screens
 
 | Tab | Contents |
@@ -58,8 +84,9 @@ F0 F1 F2 FT  I  D  ?
 ```bash
 git clone https://github.com/tmdrake/DRAKE_2_0_APP.git
 cd DRAKE_2_0_APP
-mkdir -p assets
+mkdir -p assets docs/screenshots
 # copy tmdrake_badge.png + tmdrake_icon.png into assets/
+# copy control.jpg status.jpg settings.jpg into docs/screenshots/
 flutter create . --project-name drake_2_0_app
 flutter pub get
 flutter run
@@ -74,5 +101,5 @@ flutter build apk --release
 
 ---
 
-*Contract v1.6 — HB + link-service required · July 2026*  
+*Contract v1.6 — HB + link-service required · Screenshots section added · July 2026*  
 *http://tmdrake.com*
