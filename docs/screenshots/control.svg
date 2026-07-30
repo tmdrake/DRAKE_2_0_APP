@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="520" viewBox="0 0 280 520">
+<rect width="280" height="520" rx="28" fill="#0D0618"/>
+<rect x="8" y="8" width="264" height="504" rx="22" fill="#1A0B2E"/>
+<circle cx="28" cy="32" r="5" fill="#00D4FF"/>
+<text x="42" y="36" fill="#7CFFB2" font-family="sans-serif" font-size="11" font-weight="600">Connected</text>
+<text x="140" y="58" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="16" font-weight="700">Drake 2.0</text>
+<text x="20" y="88" fill="#E0D0FF" font-family="sans-serif" font-size="12" font-weight="600">Theme / Color (live)</text>
+<circle cx="36" cy="112" r="14" fill="#9D4EDD" stroke="#fff" stroke-width="2"/>
+<path d="M30 112 l4 4 8-8" fill="none" stroke="#fff" stroke-width="2"/>
+<circle cx="72" cy="112" r="14" fill="#FF3C00"/>
+<circle cx="108" cy="112" r="14" fill="#50B4FF"/>
+<circle cx="144" cy="112" r="14" fill="#FFB428"/>
+<circle cx="180" cy="112" r="14" fill="#14C864"/>
+<defs><linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f00"/><stop offset=".5" stop-color="#0f0"/><stop offset="1" stop-color="#00f"/></linearGradient></defs>
+<circle cx="216" cy="112" r="14" fill="url(#r)"/>
+<g font-family="sans-serif" font-size="9" fill="#ccc">
+<rect x="16" y="140" width="76" height="36" rx="8" fill="#2A1A40"/><text x="54" y="162" text-anchor="middle">Sound Phase</text>
+<rect x="100" y="140" width="76" height="36" rx="8" fill="#2A1A40"/><text x="138" y="162" text-anchor="middle">Sound Pulse</text>
+<rect x="184" y="140" width="76" height="36" rx="8" fill="#2A1A40"/><text x="222" y="162" text-anchor="middle">VU Meter</text>
+<rect x="16" y="184" width="76" height="36" rx="8" fill="#2A1A40"/><text x="54" y="206" text-anchor="middle">Rainbow</text>
+<rect x="100" y="184" width="76" height="36" rx="8" fill="#2A1A40"/><text x="138" y="206" text-anchor="middle">Comet</text>
+<rect x="184" y="184" width="76" height="36" rx="8" fill="#2A1A40"/><text x="222" y="206" text-anchor="middle">Dragonfire</text>
+<rect x="16" y="228" width="76" height="36" rx="8" fill="#2A1A40"/><text x="54" y="250" text-anchor="middle">Sparkle</text>
+<rect x="100" y="228" width="76" height="36" rx="8" fill="#00D4FF"/><text x="138" y="250" text-anchor="middle" fill="#0D0618" font-weight="700">Wave</text>
+<rect x="184" y="228" width="76" height="36" rx="8" fill="#2A1A40"/><text x="222" y="250" text-anchor="middle">Blackout</text>
+</g>
+<text x="20" y="292" fill="#aaa" font-family="sans-serif" font-size="11">Brightness</text>
+<line x1="20" y1="308" x2="200" y2="308" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+<circle cx="120" cy="308" r="8" fill="#00D4FF"/>
+<text x="20" y="336" fill="#aaa" font-family="sans-serif" font-size="11">Speed</text>
+<line x1="20" y1="352" x2="200" y2="352" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+<circle cx="160" cy="352" r="8" fill="#00D4FF"/>
+<rect x="20" y="380" width="100" height="36" rx="10" fill="#5A4010"/><text x="70" y="403" text-anchor="middle" fill="#FFB703" font-family="sans-serif" font-size="12" font-weight="600">Flash</text>
+<rect x="140" y="380" width="100" height="36" rx="10" fill="#0A4050"/><text x="190" y="403" text-anchor="middle" fill="#00D4FF" font-family="sans-serif" font-size="12" font-weight="600">Resync</text>
+<rect x="8" y="460" width="264" height="52" fill="#120820"/>
+<text x="55" y="490" text-anchor="middle" fill="#00D4FF" font-family="sans-serif" font-size="11" font-weight="600">Control</text>
+<text x="140" y="490" text-anchor="middle" fill="#666" font-family="sans-serif" font-size="11">Status</text>
+<text x="225" y="490" text-anchor="middle" fill="#666" font-family="sans-serif" font-size="11">Settings</text>
+</svg>

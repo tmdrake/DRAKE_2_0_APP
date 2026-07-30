@@ -1,18 +1,11 @@
-# Drake 2.0 App Screenshots
+# Screenshots
 
-UI mockups for **v0.2.1** (Color/Theme live, APP_INTERFACE v1.5+).
+SVG UI mockups that render on GitHub (v0.2.1).
 
-## Files to place here
+| File | Tab |
+|------|-----|
+| `control.svg` | Control — modes + live themes |
+| `status.svg` | Status — telemetry + Theme/RGB |
+| `settings.svg` | Settings — Gain / Gate / Fan / Eyes |
 
-| File | Description |
-|------|-------------|
-| `control.jpg` | Control tab — modes + live theme circles |
-| `status.jpg` | Status tab — telemetry + Theme/RGB |
-| `settings.jpg` | Settings tab — Gain / Gate / Fan / Eyes |
-
-Source files (from app team artifacts):
-- `screenshot_control_v021.jpg`
-- `screenshot_status_v021.jpg`
-- `screenshot_settings_v2.jpg`
-
-After copying, the main README will render them.
+Photo-realistic JPG mockups also live in the app-team artifacts if you want to swap them in later.
