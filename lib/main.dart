@@ -65,11 +65,9 @@ class _HomeShellState extends State<HomeShell> {
   bool _isConnected = false;
   String _statusMsg = "Tap Connect to find the tail";
 
-  // Field-debug log: phone wall time + optional suit U
   final List<String> _log = [];
   static const int _logMax = 200;
 
-  // Control state
   int _mode = 0;
   double _brightness = 80;
   double _speed = 50;
@@ -77,14 +75,12 @@ class _HomeShellState extends State<HomeShell> {
   String _activeTheme = "purple";
   int _themeId = 0;
 
-  // Sound / Settings
   bool _soundOn = true;
   double _sensitivity = 75;
   double _gate = 100;
   double _gain = 100;
   int _micLevel = 0;
 
-  // Head
   int _fanMode = 2;
   double _fanTemp = 85;
   double _cdsThreshold = 500;
@@ -92,7 +88,6 @@ class _HomeShellState extends State<HomeShell> {
   double _headTemp = 0;
   int _headLight = 0;
 
-  // Link / uptime (from STAT / HBACK)
   int _uptimeSec = 0;
   int _hbSeq = 0;
 
@@ -132,6 +127,38 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
+  /// Circular head portrait — AppBar / About. Falls back to pet icon if PNG missing.
+  Widget _headCircle({double size = 36}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFF9D4EDD).withOpacity(0.7), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF9D4EDD).withOpacity(0.25),
+            blurRadius: 6,
+            spreadRadius: 0.5,
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: Image.asset(
+          "assets/tmdrake_head.png",
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: const Color(0xFF1A0B2E),
+            alignment: Alignment.center,
+            child: Icon(Icons.pets, size: size * 0.55, color: const Color(0xFF9D4EDD)),
+          ),
+        ),
+      ),
+    );
+  }
+
   String _phoneStamp() {
     final n = DateTime.now();
     String two(int x) => x.toString().padLeft(2, '0');
@@ -162,7 +189,6 @@ class _HomeShellState extends State<HomeShell> {
     buf.writeln("# last suit U:$_uptimeSec  Seq:$_hbSeq  mode:$_mode");
     buf.writeln("# format: phone_time [suit_U]  event");
     buf.writeln();
-    // chronological (oldest first)
     for (final line in _log.reversed) {
       buf.writeln(line);
     }
@@ -293,7 +319,6 @@ class _HomeShellState extends State<HomeShell> {
 
     if (text.startsWith("STAT")) {
       _parseStat(text);
-      // don't flood log with every 2Hz STAT — sample lightly
       if (_log.isEmpty || !_log.first.contains("STAT")) {
         _appendLog(text);
       }
@@ -306,7 +331,6 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _parseHback(String line) {
-    // HBACK Seq:42 U:3600
     final map = <String, String>{};
     for (final p in line.split(RegExp(r'\s+'))) {
       if (p.contains(':')) {
@@ -434,6 +458,35 @@ class _HomeShellState extends State<HomeShell> {
     _send("C${c.red},${c.green},${c.blue}");
   }
 
+  void _showAbout() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A0B2E),
+        title: Row(
+          children: [
+            _headCircle(size: 48),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text("Drake 2.0", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+        content: const Text(
+          "TMDrake companion · v0.2.3\n"
+          "BLE NUS control for TMDrake_tail\n"
+          "Contract APP_INTERFACE v1.6\n\n"
+          "Head mark: circular portrait\n"
+          "Full crest: assets/tmdrake_badge.png\n"
+          "Art: marymouse",
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close")),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -442,16 +495,7 @@ class _HomeShellState extends State<HomeShell> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                "assets/tmdrake_badge.png",
-                height: 34,
-                width: 34,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.pets, size: 28),
-              ),
-            ),
+            _headCircle(size: 36),
             const SizedBox(width: 10),
             const Text("Drake 2.0", style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -896,10 +940,11 @@ class _HomeShellState extends State<HomeShell> {
                   }
                 : null,
           ),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text("About"),
-            subtitle: Text("Drake 2.0 Companion · v0.2.2\nField log + U/Seq · contract v1.6"),
+          ListTile(
+            leading: _headCircle(size: 32),
+            title: const Text("About"),
+            subtitle: const Text("Drake 2.0 · v0.2.3 · head portrait branding"),
+            onTap: _showAbout,
           ),
           const SizedBox(height: 30),
         ],
