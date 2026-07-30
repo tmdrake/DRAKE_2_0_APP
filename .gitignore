@@ -1,4 +1,4 @@
-# Flutter / Dart
+# Miscellaneous
 *.class
 *.log
 *.pyc
@@ -9,10 +9,14 @@
 .history
 .svn/
 migrate_working_dir/
+
+# IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
+
+# Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -22,35 +26,17 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+
+# Symbolication related
 app.*.symbols
+
+# Obfuscation related
 app.*.map.json
+
+# Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# iOS
 **/ios/Pods/
-
-# Drake policy: no binary artifacts in git
-*.pdf
-*.PDF
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.webp
-*.ico
-*.bmp
-*.bin
-*.apk
-*.aab
-*.zip
-*.tar
-*.gz
-*.woff
-*.woff2
-*.ttf
-*.otf
-
-# Local assets (copy on machine; do not commit)
-/assets/**
-/docs/screenshots/*
-!/docs/screenshots/README.md

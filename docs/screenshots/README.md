@@ -1,15 +1,18 @@
-# Screenshots (local only)
+# Drake 2.0 App Screenshots
 
-**Do not commit image binaries to this repo.**
+UI mockups for **v0.2.1** (Color/Theme live, APP_INTERFACE v1.5+).
 
-Place UI captures on your machine for README previews if needed:
+## Files to place here
 
-| Suggested local name | Description |
-|----------------------|-------------|
-| `control.jpg` | Control tab |
-| `status.jpg` | Status tab |
-| `settings.jpg` | Settings tab |
+| File | Description |
+|------|-------------|
+| `control.jpg` | Control tab — modes + live theme circles |
+| `status.jpg` | Status tab — telemetry + Theme/RGB |
+| `settings.jpg` | Settings tab — Gain / Gate / Fan / Eyes |
 
-Policy: source + markdown only. Screenshots, icons, APKs stay outside git (or use GitHub Release assets if you must publish binaries).
+Source files (from app team artifacts):
+- `screenshot_control_v021.jpg`
+- `screenshot_status_v021.jpg`
+- `screenshot_settings_v2.jpg`
 
-Contract: [APP_TEAM.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/APP_TEAM.md) · [APP_INTERFACE.md](https://github.com/tmdrake/DRAKE_2_0_TAIL/blob/main/APP_INTERFACE.md)
+After copying, the main README will render them.
