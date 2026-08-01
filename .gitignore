@@ -40,3 +40,11 @@ app.*.map.json
 
 # iOS
 **/ios/Pods/
+
+# Local machine paths
+android/local.properties
+
+# Local phone captures / scratch
+phone_*.png
+_branding_extract/
+
